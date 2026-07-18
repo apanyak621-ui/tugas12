@@ -1,0 +1,30 @@
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset (terlalu besar untuk GitHub)
+dataset/
+
+# Model besar (opsional - lihat catatan di bawah)
+model/*.h5
+model/*.keras
+
+# Upload gambar dari user
+static/uploads/*
+!static/uploads/.gitkeep
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
