@@ -3,7 +3,7 @@ import json
 import numpy as np
 import urllib.request
 from flask import Flask, render_template, request
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from werkzeug.utils import secure_filename
 
@@ -14,11 +14,11 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ==========================================
-# Download Model dari Hugging Face jika belum ada secara lokal
-# (model terlalu besar untuk disimpan langsung di GitHub)
+# Download Model TFLite dari Hugging Face jika belum ada secara lokal
+# (versi TFLite jauh lebih kecil & hemat RAM dibanding .h5 penuh)
 # ==========================================
-MODEL_URL = 'https://huggingface.co/ininyo/Tugas-12/resolve/main/xception_sneakers.h5'
-MODEL_PATH = 'model/xception_sneakers.h5'
+MODEL_URL = 'https://huggingface.co/ininyo/Tugas-12/resolve/main/xception_sneakers.tflite'
+MODEL_PATH = 'model/xception_sneakers.tflite'
 LABELS_PATH = 'model/class_labels.json'
 
 os.makedirs('model', exist_ok=True)
@@ -28,7 +28,10 @@ if not os.path.exists(MODEL_PATH):
     urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
     print("Download model selesai.")
 
-model = load_model(MODEL_PATH)
+interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
 with open(LABELS_PATH, 'r') as f:
     class_labels = json.load(f)  # contoh: {"0": "adidas", "1": "converse", ...}
@@ -37,11 +40,14 @@ with open(LABELS_PATH, 'r') as f:
 def predict_image(img_path):
     img = image.load_img(img_path, target_size=(299, 299))
     img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0) / 255.0
+    img_array = np.expand_dims(img_array, axis=0).astype(np.float32) / 255.0
 
-    prediction = model.predict(img_array)
-    predicted_index = int(np.argmax(prediction[0]))
-    confidence = float(np.max(prediction[0])) * 100
+    interpreter.set_tensor(input_details[0]['index'], img_array)
+    interpreter.invoke()
+    prediction = interpreter.get_tensor(output_details[0]['index'])[0]
+
+    predicted_index = int(np.argmax(prediction))
+    confidence = float(np.max(prediction)) * 100
     predicted_label = class_labels[str(predicted_index)]
 
     return predicted_label, confidence
