@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import urllib.request
 from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
@@ -13,10 +14,19 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ==========================================
-# Load Model dan Label Kelas
+# Download Model dari Hugging Face jika belum ada secara lokal
+# (model terlalu besar untuk disimpan langsung di GitHub)
 # ==========================================
+MODEL_URL = 'https://huggingface.co/ininyo/Tugas-12/resolve/main/xception_sneakers.h5'
 MODEL_PATH = 'model/xception_sneakers.h5'
 LABELS_PATH = 'model/class_labels.json'
+
+os.makedirs('model', exist_ok=True)
+
+if not os.path.exists(MODEL_PATH):
+    print("Model belum ada, mendownload dari Hugging Face...")
+    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+    print("Download model selesai.")
 
 model = load_model(MODEL_PATH)
 
